@@ -98,11 +98,11 @@ class EmbedData:
     def embed(self, images):
         self.images = images
         self.all_embeddings = []
-        print("==== Start Embedding ====")
+        # print("==== Start Embedding ====")
         for batch_images in tqdm(batch_iterate(images, self.batch_size), desc="Generating embeddings"):
             batch_embeddings = self.generate_embedding(batch_images)
             self.embeddings.extend(batch_embeddings)
-        print("==== Finish Emebedding Images in RAG_CODE ====")
+        # print("==== Finish Emebedding Images in RAG_CODE ====")
 
 class QdrantVDB_QB:
     def __init__(self, collection_name, vector_dim=1031, batch_size=15):
@@ -120,7 +120,7 @@ class QdrantVDB_QB:
   
 
     def create_collection(self):
-        print("==== Start Vector DB Create Collection RAG CODE ====")
+        # print("==== Start Vector DB Create Collection RAG CODE ====")
         if not self.client.collection_exists(collection_name=self.collection_name):
             self.client.create_collection(
                 collection_name=self.collection_name,
@@ -133,7 +133,7 @@ class QdrantVDB_QB:
                     multivector_config=models.MultiVectorConfig(comparator=models.MultiVectorComparator.MAX_SIM),
                 )
             )
-        print("==== Finish Vector DB Create Collection RAG CODE ====")
+        # print("==== Finish Vector DB Create Collection RAG CODE ====")
 
     def ingest_data(self, embeddata):
         """
@@ -144,7 +144,7 @@ class QdrantVDB_QB:
         print("==== Start Ingest Data ====")
         for batch_embeddings in tqdm(batch_iterate(embeddata.embeddings, self.batch_size), desc="Ingesting data"):
             points = []
-            print("==== Start Points ====")
+            # print("==== Start Points ====")
             for j, embedding in enumerate(batch_embeddings):
                 # Using image path or small thumbnail is more efficient than full base64
                 # For demonstration, keep base64, but you can skip or store smaller size.
@@ -156,7 +156,7 @@ class QdrantVDB_QB:
                     payload={"image": image_bs64},
                 )
                 points.append(current_point)
-            print("==== Finish Points ====")
+            # print("==== Finish Points ====")
             # print(points)
             self.client.upsert(collection_name=self.collection_name, points=points, wait=True)
             idx += len(batch_embeddings)
@@ -186,8 +186,8 @@ class Retriever:
 class RAG:
     # def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-3B-Instruct"):
     # def __init__(self, retriever, llm_name="Qwen/Qwen2-VL-2B-Instruct"):
-    # def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-72B-Instruct"):
-    def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-3B-Instruct-AWQ"):
+    def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-7B-Instruct"):
+    # def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-3B-Instruct-AWQ"):
         self.llm_name = llm_name
         self._setup_llm()
         self.retriever = retriever
@@ -260,13 +260,14 @@ class RAG:
         inputs = inputs.to(self.model.device)
 
         # Inference
-        generated_ids = self.model.generate(**inputs, max_new_tokens=512)
+        generated_ids = self.model.generate(**inputs, max_new_tokens=2048, do_sample=True, temperature=0.7)
         generated_ids_trimmed = [
             out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
         ]
-        print(generated_ids_trimmed)
+        # print(generated_ids_trimmed)
         output_text = self.processor.batch_decode(
-            generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False, streaming=True
+            generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False, streaming=True, json=True
         )
-        print(output_text)
-        return stream_response(output_text)
+        # print(json.dumps(output_text))
+        # return stream_response(str(output_text))
+        return output_text
