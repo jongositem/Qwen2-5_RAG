@@ -1,5 +1,4 @@
 import os
-
 import base64
 import gc
 import random
@@ -16,6 +15,7 @@ from tqdm import tqdm
 from pdf2image import convert_from_path
 from rag_code import EmbedData, QdrantVDB_QB, Retriever, RAG
 from pathlib import Path
+import json
 
 collection_name = "Hot-Doc-AI"
 torch.classes.__path__ = []
@@ -130,20 +130,20 @@ with params_col:
                             images[i].save('./images/page'+ str(i) +'.jpg', 'JPEG')
 
                         # embed data
-                        print("Start Emebedding data")    
+                        # print("Start Emebedding data")    
                         embeddata = EmbedData()
-                        print("Start Emebedding Images")
+                        # print("Start Emebedding Images")
                         embeddata.embed(images)
 
                         # set up vector database
                         print("==== Start Vector DB ====")
                         qdrant_vdb = QdrantVDB_QB(collection_name=collection_name,
                                                 vector_dim=1031)
-                        print("==== Start Vector DB Define Client ====")                                              
+                        # print("==== Start Vector DB Define Client ====")                                              
                         qdrant_vdb.define_client()
-                        print("==== Start Vector DB Create Collection ====")
+                        # print("==== Start Vector DB Create Collection ====")
                         qdrant_vdb.create_collection()
-                        print("==== Start Vector DB Embedd Data ====")
+                        # print("==== Start Vector DB Embedd Data ====")
                         qdrant_vdb.ingest_data(embeddata=embeddata)
 
                         # set up retriever
@@ -160,7 +160,7 @@ with params_col:
                     # Inform the user that the file is processed and Display the PDF uploaded
                     st.success("Ready to Chat!")
                     display_pdf(uploaded_file)
-                    print(query_engine)
+                    # print(query_engine)
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
@@ -198,15 +198,38 @@ with chart_col:
                 full_response = ""
 
                 streaming_response = query_engine.query(prompt)
-                        
-                for chunk in streaming_response:
-                    full_response += chunk
-                    message_placeholder.markdown(full_response + "▌")
+                print("Streaming Response:", streaming_response)
 
-                    time.sleep(0.01)
-                message_placeholder.markdown(full_response)
-                print(full_response)
-                print("Full Response Length:", len(full_response))
+                try:
+                    for chunk in streaming_response:
+                        full_response += chunk
+                        message_placeholder.markdown(full_response + "▌")
+
+                        time.sleep(0.01)
+                    message_placeholder.markdown(full_response)
+                    print("Full Response Length:", len(full_response))
+                except Exception as e:  
+                    st.error(f"Generation error: {str(e)}")
+                    st.session_state.messages.append({"role": "assistant", "content": "Sorry, I encountered an error."})
+
+                # try:
+                #     for chunk in streaming_response:
+                #         full_response += chunk
+                #     print(full_response)
+
+                # except Exception as e:
+                #     st.error(f"Generation error: {str(e)}")
+                #     st.session_state.messages.append({"role": "assistant", "content": "Sorry, I encountered an error."})
+
+                        
+                # for chunk in streaming_response:
+                #     full_response += chunk
+                #     message_placeholder.markdown(full_response + "▌")
+
+                #     time.sleep(0.01)
+                # message_placeholder.markdown(full_response)
+                # print(streaming_response)
+                # print("Full Response Length:", len(full_response))
 
             # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": full_response})
