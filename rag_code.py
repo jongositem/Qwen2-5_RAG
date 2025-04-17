@@ -187,6 +187,7 @@ class RAG:
     # def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-3B-Instruct"):
     # def __init__(self, retriever, llm_name="Qwen/Qwen2-VL-2B-Instruct"):
     def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-7B-Instruct"):
+    # def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-32B-Instruct"):
     # def __init__(self, retriever, llm_name="Qwen/Qwen2.5-VL-3B-Instruct-AWQ"):
         self.llm_name = llm_name
         self._setup_llm()
